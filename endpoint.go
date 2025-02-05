@@ -13,8 +13,8 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/bwmarrin/discordgo"
+	"github.com/elliotwms/bot-lambda/sessionprovider"
 	"github.com/elliotwms/bot/interactions/router"
-	"github.com/elliotwms/bot/lambda/sessionprovider"
 	"github.com/elliotwms/bot/log"
 )
 

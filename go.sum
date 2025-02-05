@@ -15,8 +15,6 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/elliotwms/bot v0.3.37 h1:gjgQz6floVycGFR9tOmacaP0in676rsDfG/AWZJCgUg=
 github.com/elliotwms/bot v0.3.37/go.mod h1:Qz0IE7srsFVWxr9FEoRgfNR7itembpx6db6YpSlVT5M=
-github.com/elliotwms/bot/lambda v0.0.0-20250205170620-566bceed00b6 h1:OVDj0Ybrdi+veYrx4aDdf8gqulbWRbltImlRdpGPu8Y=
-github.com/elliotwms/bot/lambda v0.0.0-20250205170620-566bceed00b6/go.mod h1:kQyMG14qf2/NE5gXEdNu54J/U5OIze10g7T/QUe03bQ=
 github.com/elliotwms/fakediscord v0.18.2 h1:EN1JeyhMMPpZf+UnZMvROjhuzsAM+z4nw9bVseakcjo=
 github.com/elliotwms/fakediscord v0.18.2/go.mod h1:diPjfnMTjg73Izwl5pHMvGoGuOL8VSsMVt2ugFhfCos=
 github.com/google/go-cmp v0.6.0 h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=
