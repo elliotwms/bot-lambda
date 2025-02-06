@@ -103,76 +103,117 @@ func (e *Endpoint) WithApplicationCommand(name string, commandType discordgo.App
 	return e
 }
 
-// Handle handles the events.LambdaFunctionURLRequest.
-// It should be registered to the Lambda Start in a function which is configured as a single-url function.
-// See https://docs.aws.amazon.com/lambda/latest/dg/urls-configuration.html for more info.
-func (e *Endpoint) Handle(ctx context.Context, event *events.LambdaFunctionURLRequest) (res *events.LambdaFunctionURLResponse, err error) {
-	ctx, s := xray.BeginSubsegment(ctx, "handle")
+// HandleEvent is the lambda handler for events.APIGatewayProxyRequest (when the lambda function is integrated with API
+// Gateway.
+// See https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html for more info.
+func (e *Endpoint) HandleEvent(ctx context.Context, event *events.APIGatewayProxyRequest) (res *events.APIGatewayProxyResponse, err error) {
+	ctx, s := xray.BeginSubsegment(ctx, "handle event")
 	defer s.Close(err)
-	if event == nil {
-		return nil, fmt.Errorf("received nil event")
+
+	if event.RequestContext.HTTPMethod != http.MethodPost {
+		// Receiving anything other than a POST requests points to a configuration issue and should be investigated
+		e.log.Error("Unexpected http method", slog.String("method", event.RequestContext.HTTPMethod))
+		return &events.APIGatewayProxyResponse{StatusCode: http.StatusMethodNotAllowed}, nil
 	}
 
-	bs := []byte(event.Body)
+	e.log.Debug("Received event")
 
-	e.log.Debug(
-		"Received request",
-		slog.String("user_agent", event.RequestContext.HTTP.UserAgent),
-		slog.String("method", event.RequestContext.HTTP.Method),
-	)
+	body, code, err := e.handle(ctx, event.Headers, []byte(event.Body))
 
-	if err = e.verify(ctx, event); err != nil {
-		e.log.Error("Failed to verify signature", "error", err)
-		return &events.LambdaFunctionURLResponse{
-			StatusCode: http.StatusUnauthorized,
-		}, nil
-	}
-
-	var i *discordgo.InteractionCreate
-	if err = json.Unmarshal(bs, &i); err != nil {
-		return nil, err
-	}
-
-	response, err := e.handleInteraction(ctx, i)
 	if err != nil {
 		return nil, err
 	}
 
-	if response == nil {
-		return &events.LambdaFunctionURLResponse{StatusCode: http.StatusAccepted}, nil
+	return &events.APIGatewayProxyResponse{
+		StatusCode: code,
+		Body:       body,
+	}, nil
+}
+
+// HandleRequest handles the events.LambdaFunctionURLRequest.
+// It should be registered to the Lambda Start in a function which is configured as a single-url function.
+// See https://docs.aws.amazon.com/lambda/latest/dg/urls-configuration.html for more info.
+func (e *Endpoint) HandleRequest(ctx context.Context, event *events.LambdaFunctionURLRequest) (res *events.LambdaFunctionURLResponse, err error) {
+	ctx, s := xray.BeginSubsegment(ctx, "handle request")
+	defer s.Close(err)
+
+	if event.RequestContext.HTTP.Method != http.MethodPost {
+		// Receiving anything other than a POST requests points to a configuration issue and should be investigated
+		e.log.Error("Unexpected http method", slog.String("method", event.RequestContext.HTTP.Method))
+		return &events.LambdaFunctionURLResponse{StatusCode: http.StatusMethodNotAllowed}, nil
 	}
 
-	bs, err = json.Marshal(response)
+	e.log.Debug(
+		"Received request",
+		slog.String("user_agent", event.RequestContext.HTTP.UserAgent),
+	)
+
+	body, code, err := e.handle(ctx, event.Headers, []byte(event.Body))
+
 	if err != nil {
 		return nil, err
 	}
 
 	return &events.LambdaFunctionURLResponse{
-		StatusCode: http.StatusOK,
-		Body:       string(bs),
+		StatusCode: code,
+		Body:       body,
 	}, nil
+}
+
+func (e *Endpoint) handle(ctx context.Context, headers map[string]string, body []byte) (res string, code int, err error) {
+	ctx, s := xray.BeginSubsegment(ctx, "handle")
+	defer s.Close(err)
+
+	if err = e.verify(ctx, headers, body); err != nil {
+		e.log.Error("Failed to verify signature", "error", err)
+		return "", http.StatusUnauthorized, nil
+	}
+
+	var i *discordgo.InteractionCreate
+	if err = json.Unmarshal(body, &i); err != nil {
+		return "", 0, fmt.Errorf("unmarshal interaction create: %w", err)
+	}
+
+	response, err := e.handleInteraction(ctx, i)
+	if err != nil {
+		return "", 0, err
+	}
+
+	// if no response is provided then return a 202
+	//https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-callback
+	if response == nil {
+		return "", http.StatusAccepted, nil
+	}
+
+	bs, err := json.Marshal(response)
+	if err != nil {
+		return "", 0, fmt.Errorf("marshal interaction response: %w", err)
+	}
+
+	return string(bs), http.StatusOK, err
 }
 
 // verify verifies the request using the ed25519 signature as per Discord's documentation.
 // See https://discord.com/developers/docs/events/webhook-events#setting-up-an-endpoint-validating-security-request-headers.
-func (e *Endpoint) verify(ctx context.Context, event *events.LambdaFunctionURLRequest) error {
+func (e *Endpoint) verify(ctx context.Context, headers map[string]string, body []byte) error {
 	_, s := xray.BeginSubsegment(ctx, "verify")
 	defer s.Close(nil)
 
+	// if no public key is provided then skip verification
 	if len(e.publicKey) == 0 {
 		return nil
 	}
 
-	headers := make(http.Header, len(event.Headers))
-	for k, v := range event.Headers {
-		headers.Add(k, v)
+	parsed := make(http.Header, len(headers))
+	for k, v := range headers {
+		parsed.Add(k, v)
 	}
 
-	signature := headers.Get(headerSignature)
+	signature := parsed.Get(headerSignature)
 	if signature == "" {
 		return errors.New("missing header X-Signature-Ed25519")
 	}
-	ts := headers.Get(headerTimestamp)
+	ts := parsed.Get(headerTimestamp)
 	if ts == "" {
 		return errors.New("missing header X-Signature-Timestamp")
 	}
@@ -182,7 +223,7 @@ func (e *Endpoint) verify(ctx context.Context, event *events.LambdaFunctionURLRe
 		return fmt.Errorf("invalid signature: %w", err)
 	}
 
-	verify := append([]byte(ts), []byte(event.Body)...)
+	verify := append([]byte(ts), body...)
 
 	if !ed25519.Verify(e.publicKey, verify, sig) {
 		return errors.New("invalid signature")

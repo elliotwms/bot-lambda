@@ -5,6 +5,7 @@ import (
 	"crypto/ed25519"
 	"encoding/hex"
 	"encoding/json"
+	"net/http"
 	"strconv"
 	"testing"
 	"time"
@@ -26,6 +27,7 @@ type PingStage struct {
 	assert      *assert.Assertions
 	privateKey  ed25519.PrivateKey
 	omitHeaders bool
+	httpMethod  string
 }
 
 func NewPingStage(t *testing.T) (*PingStage, *PingStage, *PingStage) {
@@ -39,8 +41,9 @@ func NewPingStage(t *testing.T) (*PingStage, *PingStage, *PingStage) {
 		assert:     assert.New(t),
 		require:    require.New(t),
 		session:    session,
-		handler:    New(publicKey, WithLogger(slogt.New(t))).WithSession(session).Handle,
+		handler:    New(publicKey, WithLogger(slogt.New(t))).WithSession(session).HandleRequest,
 		privateKey: privateKey,
+		httpMethod: http.MethodPost,
 	}
 
 	return s, s, s
@@ -62,6 +65,9 @@ func (s *PingStage) a_ping_is_sent() *PingStage {
 	sign := ed25519.Sign(s.privateKey, append([]byte(ts), bs...))
 
 	req := &events.LambdaFunctionURLRequest{
+		RequestContext: events.LambdaFunctionURLRequestContext{
+			HTTP: events.LambdaFunctionURLRequestContextHTTPDescription{Method: s.httpMethod},
+		},
 		Body: string(bs),
 	}
 
@@ -105,4 +111,8 @@ func (s *PingStage) an_invalid_signature() {
 
 func (s *PingStage) request_will_omit_signature_headers() {
 	s.omitHeaders = true
+}
+
+func (s *PingStage) request_will_have_method(method string) {
+	s.httpMethod = method
 }

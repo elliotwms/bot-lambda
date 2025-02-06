@@ -41,3 +41,16 @@ func TestPing_MissingSignature(t *testing.T) {
 	then.
 		the_status_code_should_be(http.StatusUnauthorized)
 }
+
+func TestPing_InvalidMethod(t *testing.T) {
+	given, when, then := NewPingStage(t)
+
+	given.
+		request_will_have_method(http.MethodPatch)
+
+	when.
+		a_ping_is_sent()
+
+	then.
+		the_status_code_should_be(http.StatusMethodNotAllowed)
+}
