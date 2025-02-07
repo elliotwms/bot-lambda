@@ -1,4 +1,4 @@
-package lambda
+package bot_lambda
 
 import (
 	"net/http"
