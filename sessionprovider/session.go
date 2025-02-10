@@ -15,9 +15,9 @@ type Provider func(ctx context.Context) (*discordgo.Session, error)
 
 // ParamStore initialises the Discord Session using the token stored in param store
 func ParamStore(paramName string) Provider {
-	return func(ctx context.Context) (*discordgo.Session, error) {
-		_, seg := xray.BeginSubsegment(ctx, "param store")
-		defer seg.Close(nil)
+	return func(ctx context.Context) (s *discordgo.Session, err error) {
+		ctx, seg := xray.BeginSubsegment(ctx, "param store")
+		defer seg.Close(err)
 		if paramName == "" {
 			return nil, errors.New("empty discord token paramstore parameter name")
 		}
@@ -25,7 +25,7 @@ func ParamStore(paramName string) Provider {
 		parameters := secretlamb.MustNewParameters()
 		parameters.HTTPClient = xray.Client(parameters.HTTPClient)
 
-		p, err := parameters.GetWithDecryption(paramName)
+		p, err := parameters.GetWithContext(ctx, paramName, secretlamb.ParameterWithDecryption())
 		if err != nil {
 			return nil, err
 		}
@@ -34,7 +34,7 @@ func ParamStore(paramName string) Provider {
 			return nil, fmt.Errorf("parameter empty")
 		}
 
-		s, _ := discordgo.New("Bot " + p.Parameter.Value)
+		s, _ = discordgo.New("Bot " + p.Parameter.Value)
 		s.Client = xray.Client(s.Client)
 
 		return s, nil
@@ -50,7 +50,7 @@ func Cached(f Provider) Provider {
 
 	return func(ctx context.Context) (*discordgo.Session, error) {
 		once.Do(func() {
-			v, err = f(context.Background())
+			v, err = f(ctx)
 		})
 
 		return v, err
