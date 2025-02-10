@@ -6,7 +6,7 @@ require (
 	github.com/aws/aws-lambda-go v1.47.0
 	github.com/aws/aws-xray-sdk-go v1.8.5
 	github.com/bwmarrin/discordgo v0.28.1
-	github.com/elliotwms/bot v0.3.37
+	github.com/elliotwms/bot v0.4.0
 	github.com/elliotwms/fakediscord v0.18.2
 	github.com/neilotoole/slogt v1.1.0
 	github.com/stretchr/testify v1.10.0

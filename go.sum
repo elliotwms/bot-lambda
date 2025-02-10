@@ -13,8 +13,8 @@ github.com/bwmarrin/discordgo v0.28.1/go.mod h1:NJZpH+1AfhIcyQsPeuBKsUtYrRnjkyu0
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/elliotwms/bot v0.3.37 h1:gjgQz6floVycGFR9tOmacaP0in676rsDfG/AWZJCgUg=
-github.com/elliotwms/bot v0.3.37/go.mod h1:Qz0IE7srsFVWxr9FEoRgfNR7itembpx6db6YpSlVT5M=
+github.com/elliotwms/bot v0.4.0 h1:jFRJsOQ6x0ITWwJSgDBYXF5eOWFM81jkGea4GLS/G0E=
+github.com/elliotwms/bot v0.4.0/go.mod h1:Qz0IE7srsFVWxr9FEoRgfNR7itembpx6db6YpSlVT5M=
 github.com/elliotwms/fakediscord v0.18.2 h1:EN1JeyhMMPpZf+UnZMvROjhuzsAM+z4nw9bVseakcjo=
 github.com/elliotwms/fakediscord v0.18.2/go.mod h1:diPjfnMTjg73Izwl5pHMvGoGuOL8VSsMVt2ugFhfCos=
 github.com/google/go-cmp v0.6.0 h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=
