@@ -10,7 +10,7 @@ require (
 	github.com/elliotwms/fakediscord v0.18.2
 	github.com/neilotoole/slogt v1.1.0
 	github.com/stretchr/testify v1.10.0
-	github.com/winebarrel/secretlamb v0.3.0
+	github.com/winebarrel/secretlamb v0.4.0
 )
 
 require (
@@ -19,7 +19,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
-	github.com/hashicorp/go-retryablehttp v0.7.5 // indirect
+	github.com/hashicorp/go-retryablehttp v0.7.7 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/klauspost/compress v1.17.6 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
