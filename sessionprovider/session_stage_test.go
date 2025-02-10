@@ -76,7 +76,7 @@ func (s *SessionStage) no_error_should_be_returned() *SessionStage {
 
 func (s *SessionStage) the_session_has_token(token string) {
 	s.require.NotNil(s.session)
-	s.require.Equal("Bot bar", s.session.Token)
+	s.require.Equal(token, s.session.Token)
 }
 
 func (s *SessionStage) an_error_should_be_returned(err string) {
