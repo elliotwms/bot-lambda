@@ -55,7 +55,7 @@ The endpoint can be configured to send initial deferred responses as soon as the
 
 Whilst also available in the underlying router, adding this to the Endpoint ensures this happens before other time-consuming processes such as retrieving the bot token from param store (see [Session Providers](#session-providers)).
 
-> [!WARN]
+> [!WARNING]
 > Make sure not to configure deferred responses for both the Endpoint and the underlying Router at the same time!
 
 ### Public Key Verification
