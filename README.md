@@ -43,11 +43,20 @@ For API Gateway use `HandleEvent`, and for Function URLs use `HandleRequest`.
 
 ### Configurable Interaction Router
 
-The underlying interaction router can be configured to provide initial deferred responses, which can be useful when handlers exceed the 3-second initial response time limit (this can often be the case during cold starts or when your downstream dependencies ).
+The underlying interaction router can be configured to provide additional logging.
 
 ### Built-in Ping Request Handling
 
 bot-lambda responds to PING requests from Discord as described in the [Discord documentation](https://discord.com/developers/docs/interactions/overview#setting-up-an-endpoint-acknowledging-ping-requests).
+
+### Built-in Initial Deferred Response
+
+The endpoint can be configured to send initial deferred responses as soon as the interaction is received, which can be useful when handlers exceed the 3-second initial response time limit (this can often be the case during cold starts or if you have slower downstream dependencies).
+
+Whilst also available in the underlying router, adding this to the Endpoint ensures this happens before other time-consuming processes such as retrieving the bot token from param store (see [Session Providers](#session-providers)).
+
+> [!WARN]
+> Make sure not to configure deferred responses for both the Endpoint and the underlying Router at the same time!
 
 ### Public Key Verification
 
