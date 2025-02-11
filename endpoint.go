@@ -241,7 +241,8 @@ func (e *Endpoint) verify(ctx context.Context, headers map[string]string, body [
 
 // handleInteraction handles the discordgo.InteractionCreate, returning an optional sync response
 func (e *Endpoint) handleInteraction(ctx context.Context, i *discordgo.InteractionCreate) (res *discordgo.InteractionResponse, err error) {
-	e.log.Debug("Handling interaction", "type", i.Type, "interaction_id", i.ID)
+	log := e.log.With("interaction_type", i.Type, "interaction_id", i.ID)
+	log.Debug("Handling interaction")
 	ctx, seg := xray.BeginSubsegment(ctx, "handle interaction")
 	_ = seg.AddAnnotation("type", int(i.Type))
 	defer seg.Close(err)
@@ -254,6 +255,7 @@ func (e *Endpoint) handleInteraction(ctx context.Context, i *discordgo.Interacti
 
 	// if deferred response is enabled, then respond to the interaction ASAP
 	if e.deferredResponseEnabled && i.Type == discordgo.InteractionApplicationCommand {
+		log.Debug("Sending deferred response")
 		if err := e.sendDeferredResponse(ctx, i, s); err != nil {
 			return nil, fmt.Errorf("sending deferred response: %w", err)
 		}
