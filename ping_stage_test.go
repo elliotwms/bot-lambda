@@ -20,7 +20,6 @@ import (
 
 type PingStage struct {
 	t           *testing.T
-	session     *discordgo.Session
 	require     *require.Assertions
 	handler     func(context.Context, *events.LambdaFunctionURLRequest) (*events.LambdaFunctionURLResponse, error)
 	res         *events.LambdaFunctionURLResponse
@@ -40,8 +39,7 @@ func NewPingStage(t *testing.T) (*PingStage, *PingStage, *PingStage) {
 		t:          t,
 		assert:     assert.New(t),
 		require:    require.New(t),
-		session:    session,
-		handler:    New(publicKey, WithLogger(slogt.New(t))).WithSession(session).HandleRequest,
+		handler:    New(publicKey, WithLogger(slogt.New(t))).HandleRequest,
 		privateKey: privateKey,
 		httpMethod: http.MethodPost,
 	}

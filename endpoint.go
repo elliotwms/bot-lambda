@@ -24,10 +24,11 @@ const (
 )
 
 type Endpoint struct {
-	s         sessionprovider.Provider
-	publicKey ed25519.PublicKey
-	router    *router.Router
-	log       *slog.Logger
+	s                       sessionprovider.Provider
+	publicKey               ed25519.PublicKey
+	router                  *router.Router
+	log                     *slog.Logger
+	deferredResponseEnabled bool
 }
 
 func New(publicKey ed25519.PublicKey, options ...Option) *Endpoint {
@@ -58,6 +59,12 @@ func WithRouter(router *router.Router) Option {
 func WithLogger(logger *slog.Logger) Option {
 	return func(endpoint *Endpoint) {
 		endpoint.log = logger
+	}
+}
+
+func WithDeferredResponseEnabled(enabled bool) Option {
+	return func(endpoint *Endpoint) {
+		endpoint.deferredResponseEnabled = enabled
 	}
 }
 
@@ -233,26 +240,47 @@ func (e *Endpoint) verify(ctx context.Context, headers map[string]string, body [
 }
 
 // handleInteraction handles the discordgo.InteractionCreate, returning an optional sync response
-func (e *Endpoint) handleInteraction(ctx context.Context, i *discordgo.InteractionCreate) (*discordgo.InteractionResponse, error) {
+func (e *Endpoint) handleInteraction(ctx context.Context, i *discordgo.InteractionCreate) (res *discordgo.InteractionResponse, err error) {
 	e.log.Debug("Handling interaction", "type", i.Type, "interaction_id", i.ID)
 	ctx, seg := xray.BeginSubsegment(ctx, "handle interaction")
 	_ = seg.AddAnnotation("type", int(i.Type))
-	defer seg.Close(nil)
+	defer seg.Close(err)
 
 	var s *discordgo.Session
 
-	// if a session provided exists then use it as the session source
+	// build a session scoped for the interaction
+	s, _ = discordgo.New("Bot " + i.Token)
+	s.Client = xray.Client(s.Client)
+
+	// if deferred response is enabled, then respond to the interaction ASAP
+	if e.deferredResponseEnabled && i.Type == discordgo.InteractionApplicationCommand {
+		if err := e.sendDeferredResponse(ctx, i, s); err != nil {
+			return nil, fmt.Errorf("sending deferred response: %w", err)
+		}
+	}
+
+	// if a session provider exists then resolve it to use it as the session source
 	if e.s != nil {
 		var err error
 		s, err = e.s(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("get session from source: %w", err)
 		}
-	} else {
-		// otherwise build a session scoped for the interaction
-		s, _ = discordgo.New("Bot " + i.Token)
-		s.Client = xray.Client(s.Client)
 	}
 
 	return e.router.HandleWithContext(ctx, s, i), nil
+}
+
+func (e *Endpoint) sendDeferredResponse(ctx context.Context, i *discordgo.InteractionCreate, s *discordgo.Session) (err error) {
+	ctx, seg := xray.BeginSubsegment(ctx, "send deferred response")
+
+	err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Flags: discordgo.MessageFlagsEphemeral,
+		},
+	}, discordgo.WithContext(ctx))
+
+	seg.Close(err)
+	return
 }
