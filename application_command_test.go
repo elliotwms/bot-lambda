@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/bwmarrin/discordgo"
 	"github.com/elliotwms/bot/interactions/router"
 	"github.com/elliotwms/fakediscord/pkg/fakediscord"
@@ -44,11 +43,7 @@ func TestEndpoint_ApplicationCommand(t *testing.T) {
 	require.NoError(t, err)
 
 	// when the endpoint receives the interaction
-	ctx, seg := xray.BeginSegment(context.Background(), "test")
-	t.Cleanup(func() {
-		seg.Close(nil)
-	})
-	res, err := e.HandleRequest(ctx, &events.LambdaFunctionURLRequest{
+	res, err := e.HandleRequest(context.Background(), &events.LambdaFunctionURLRequest{
 		RequestContext: events.LambdaFunctionURLRequestContext{
 			HTTP: events.LambdaFunctionURLRequestContextHTTPDescription{Method: http.MethodPost},
 		},
@@ -106,11 +101,7 @@ func TestEndpoint_ApplicationCommandWithDeferredResponse(t *testing.T) {
 	fakediscord.Configure(server.URL + "/")
 
 	// when the endpoint receives the interaction
-	ctx, seg := xray.BeginSegment(context.Background(), "test")
-	t.Cleanup(func() {
-		seg.Close(nil)
-	})
-	res, err := e.HandleRequest(ctx, &events.LambdaFunctionURLRequest{
+	res, err := e.HandleRequest(context.Background(), &events.LambdaFunctionURLRequest{
 		RequestContext: events.LambdaFunctionURLRequestContext{
 			HTTP: events.LambdaFunctionURLRequestContextHTTPDescription{Method: http.MethodPost},
 		},
