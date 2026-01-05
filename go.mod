@@ -1,13 +1,13 @@
 module github.com/elliotwms/bot-lambda
 
-go 1.23.4
+go 1.24.0
 
 require (
 	github.com/aws/aws-lambda-go v1.47.0
 	github.com/aws/aws-xray-sdk-go v1.8.5
 	github.com/bwmarrin/discordgo v0.28.1
 	github.com/elliotwms/bot v0.4.1
-	github.com/elliotwms/fakediscord v0.18.2
+	github.com/elliotwms/fakediscord v0.18.6
 	github.com/neilotoole/slogt v1.1.0
 	github.com/stretchr/testify v1.10.0
 	github.com/winebarrel/secretlamb v0.4.0
@@ -26,10 +26,10 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.58.0 // indirect
-	golang.org/x/crypto v0.32.0 // indirect
-	golang.org/x/net v0.34.0 // indirect
-	golang.org/x/sys v0.30.0 // indirect
-	golang.org/x/text v0.22.0 // indirect
+	golang.org/x/crypto v0.45.0 // indirect
+	golang.org/x/net v0.47.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
+	golang.org/x/text v0.31.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250204164813-702378808489 // indirect
 	google.golang.org/grpc v1.70.0 // indirect
 	google.golang.org/protobuf v1.36.5 // indirect
