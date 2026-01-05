@@ -3,7 +3,7 @@ module github.com/elliotwms/bot-lambda
 go 1.23.4
 
 require (
-	github.com/aws/aws-lambda-go v1.47.0
+	github.com/aws/aws-lambda-go v1.51.1
 	github.com/aws/aws-xray-sdk-go v1.8.5
 	github.com/bwmarrin/discordgo v0.28.1
 	github.com/elliotwms/bot v0.4.1
