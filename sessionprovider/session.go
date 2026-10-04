@@ -41,19 +41,28 @@ func ParamStore(paramName string) Provider {
 	}
 }
 
-// Cached wraps a Provider, ensuring it is only called once
+// Cached wraps a Provider, ensuring it is only called until it succeeds. Errors are not cached, so a transient failure
+// (e.g. fetching the token) is retried on the next call rather than failing every call for the lifetime of the process.
 func Cached(f Provider) Provider {
 	var v *discordgo.Session
-	var err error
-
-	var once = new(sync.Once)
+	var mu sync.Mutex
 
 	return func(ctx context.Context) (*discordgo.Session, error) {
-		once.Do(func() {
-			v, err = f(ctx)
-		})
+		mu.Lock()
+		defer mu.Unlock()
 
-		return v, err
+		if v != nil {
+			return v, nil
+		}
+
+		s, err := f(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		v = s
+
+		return v, nil
 	}
 }
 
