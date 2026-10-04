@@ -2,6 +2,7 @@ package sessionprovider
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/bwmarrin/discordgo"
@@ -78,5 +79,30 @@ func TestCached(t *testing.T) {
 	v2, _ := source(context.Background())
 
 	require.Equal(t, 1, count)
+	require.Equal(t, v1, v2)
+}
+
+func TestCached_RetriesAfterError(t *testing.T) {
+	count := 0
+	f := func(ctx context.Context) (*discordgo.Session, error) {
+		count++
+		if count == 1 {
+			return nil, errors.New("temporary error")
+		}
+
+		return &discordgo.Session{Token: fmt.Sprintf("Bot %v", count)}, nil
+	}
+
+	source := Cached(f)
+
+	_, err := source(context.Background())
+	require.Error(t, err)
+
+	v1, err := source(context.Background())
+	require.NoError(t, err)
+	v2, err := source(context.Background())
+	require.NoError(t, err)
+
+	require.Equal(t, 2, count)
 	require.Equal(t, v1, v2)
 }
