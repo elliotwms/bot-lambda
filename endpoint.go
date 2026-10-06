@@ -29,6 +29,8 @@ type Endpoint struct {
 	router                  *router.Router
 	log                     *slog.Logger
 	deferredResponseEnabled bool
+	commands                []*discordgo.ApplicationCommand
+	tasks                   map[string]Task
 }
 
 func New(publicKey ed25519.PublicKey, options ...Option) *Endpoint {
@@ -38,6 +40,7 @@ func New(publicKey ed25519.PublicKey, options ...Option) *Endpoint {
 		publicKey: publicKey,
 		log:       logger,
 		router:    router.New(router.WithLogger(logger)),
+		tasks:     map[string]Task{TaskRegisterCommands: registerCommandsTask},
 	}
 
 	for _, o := range options {
@@ -104,10 +107,10 @@ func (e *Endpoint) WithMessageApplicationCommand(name string, handler router.App
 }
 
 // WithApplicationCommand registers a new application command with the underlying Router.
+// Use WithCommand instead to register the command with a full definition, such as its description, options or the
+// contexts it can be used in.
 func (e *Endpoint) WithApplicationCommand(name string, commandType discordgo.ApplicationCommandType, handler router.ApplicationCommandHandler) *Endpoint {
-	e.router.RegisterCommand(name, commandType, handler)
-
-	return e
+	return e.WithCommand(&discordgo.ApplicationCommand{Name: name, Type: commandType}, handler)
 }
 
 // HandleEvent is the lambda handler for events.APIGatewayProxyRequest (when the lambda function is integrated with API
