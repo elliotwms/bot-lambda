@@ -6,7 +6,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	os.Setenv("AWS_XRAY_SDK_DISABLED", "true")
+	_ = os.Setenv("AWS_XRAY_SDK_DISABLED", "true")
 
 	m.Run()
 }
