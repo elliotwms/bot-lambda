@@ -22,7 +22,9 @@ go test -race ./...
 golangci-lint run
 ```
 
-Tests run against [fakediscord](https://github.com/elliotwms/fakediscord) as a Go package and `httptest` servers, so they need no Docker. `setup_test.go` sets `AWS_XRAY_SDK_DISABLED=true` because the endpoint and clients are traced with the X-Ray SDK.
+Tests run against [fakediscord](https://github.com/elliotwms/fakediscord) as a Go package and `httptest` servers, so they need no Docker.
+
+Tracing uses the OpenTelemetry API only, through `internal/tracing`, with the global tracer provider. Applications choose the SDK and exporter, so don't add an SDK or exporter dependency outside tests.
 
 ## Conventions
 

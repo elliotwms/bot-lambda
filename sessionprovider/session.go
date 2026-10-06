@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/bwmarrin/discordgo"
+	"github.com/elliotwms/bot-lambda/internal/tracing"
 	"github.com/winebarrel/secretlamb"
 )
 
@@ -16,14 +16,14 @@ type Provider func(ctx context.Context) (*discordgo.Session, error)
 // ParamStore initialises the Discord Session using the token stored in param store
 func ParamStore(paramName string) Provider {
 	return func(ctx context.Context) (s *discordgo.Session, err error) {
-		ctx, seg := xray.BeginSubsegment(ctx, "param store")
-		defer seg.Close(err)
+		ctx, span := tracing.Start(ctx, "param store")
+		defer func() { tracing.End(span, err) }()
 		if paramName == "" {
 			return nil, errors.New("empty discord token paramstore parameter name")
 		}
 
 		parameters := secretlamb.MustNewParameters()
-		parameters.HTTPClient = xray.Client(parameters.HTTPClient)
+		parameters.HTTPClient = tracing.Client(parameters.HTTPClient)
 
 		p, err := parameters.GetWithContext(ctx, paramName, secretlamb.ParameterWithDecryption())
 		if err != nil {
@@ -35,7 +35,7 @@ func ParamStore(paramName string) Provider {
 		}
 
 		s, _ = discordgo.New("Bot " + p.Parameter.Value)
-		s.Client = xray.Client(s.Client)
+		s.Client = tracing.Client(s.Client)
 
 		return s, nil
 	}

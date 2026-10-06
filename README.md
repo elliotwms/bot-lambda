@@ -108,9 +108,11 @@ The built-in `register_commands` task registers the endpoint's commands with `Re
 
 Only callers with `lambda:InvokeFunction` can run tasks. A request to a function URL or API Gateway arrives wrapped in an event, so its body is never treated as a task.
 
-### X-Ray Tracing
+### Tracing
 
-The endpoint is fully traced using Amazon X-Ray, including the Discord clients provided to the handlers. Use the context provided to continue tracing within your handlers using the X-Ray SDK.
+The endpoint is traced with [OpenTelemetry](https://opentelemetry.io/docs/languages/go/), including the requests made by the Discord sessions provided to handlers and by the Parameter Store session provider. Spans are created with the global tracer provider, so tracing is a no-op unless your application configures one with `otel.SetTracerProvider`. Use the context passed to your handlers to continue the trace.
+
+On Lambda, the [AWS Distro for OpenTelemetry](https://aws-otel.github.io/docs/getting-started/lambda/lambda-go) collector layer can export the traces to X-Ray. See [pinbot-lambda](https://github.com/elliotwms/pinbot-lambda) for an example.
 
 ### Logging
 

@@ -7,8 +7,10 @@ import (
 	"log/slog"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/bwmarrin/discordgo"
+	"github.com/elliotwms/bot-lambda/internal/tracing"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // TaskRegisterCommands is a built-in task which registers the endpoint's commands with Discord, overwriting the
@@ -40,8 +42,8 @@ func (e *Endpoint) WithTask(name string, task Task) *Endpoint {
 
 // HandleTask runs the task named in the request. It requires a session provider.
 func (e *Endpoint) HandleTask(ctx context.Context, req *TaskRequest) (res *TaskResponse, err error) {
-	ctx, seg := xray.BeginSubsegment(ctx, "handle task")
-	defer seg.Close(err)
+	ctx, span := tracing.Start(ctx, "handle task", trace.WithAttributes(attribute.String("task", req.Task)))
+	defer func() { tracing.End(span, err) }()
 
 	log := e.log.With(slog.String("task", req.Task))
 
