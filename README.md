@@ -33,6 +33,27 @@ func handleFoo(ctx context.Context, s *discordgo.Session, i *discordgo.Interacti
 
 ```
 
+## How it works
+
+`HandleInvocation` routes each invocation by its payload: interactions arrive through a function URL or API Gateway, and tasks come from invoking the function directly.
+
+```mermaid
+flowchart TD
+    invoke["Lambda invocation"] --> route{"HandleInvocation"}
+    route -- "function URL request" --> request["HandleRequest"]
+    route -- "API Gateway event" --> event["HandleEvent"]
+    route -- "{task: name}" --> task["HandleTask"]
+    request --> verify["Verify the ed25519 signature"]
+    event --> verify
+    verify --> interaction["Handle the interaction"]
+    interaction -- "ping" --> pong["Pong"]
+    interaction -- "application command" --> deferred["Send a deferred response<br/>(if enabled)"]
+    deferred --> session["Session provider<br/>e.g. Parameter Store"]
+    session --> router["Router → command handler"]
+    task --> tasksession["Session provider"]
+    tasksession --> run["Task<br/>e.g. register_commands"]
+```
+
 ## Features
 
 ### Lambda Function URL Support
