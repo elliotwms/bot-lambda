@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/bwmarrin/discordgo"
 	"github.com/neilotoole/slogt"
 	"github.com/stretchr/testify/assert"
@@ -76,7 +75,7 @@ func (s *PingStage) a_ping_is_sent() *PingStage {
 		}
 	}
 
-	ctx, _ := xray.BeginSegment(context.Background(), "test")
+	ctx := context.Background()
 
 	s.res, err = s.handler(ctx, req)
 	s.require.NoError(err)

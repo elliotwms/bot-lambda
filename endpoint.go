@@ -11,11 +11,13 @@ import (
 	"net/http"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/bwmarrin/discordgo"
+	"github.com/elliotwms/bot-lambda/internal/tracing"
 	"github.com/elliotwms/bot-lambda/sessionprovider"
 	"github.com/elliotwms/bot/interactions/router"
 	"github.com/elliotwms/bot/log"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 const (
@@ -117,8 +119,8 @@ func (e *Endpoint) WithApplicationCommand(name string, commandType discordgo.App
 // Gateway.
 // See https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html for more info.
 func (e *Endpoint) HandleEvent(ctx context.Context, event *events.APIGatewayProxyRequest) (res *events.APIGatewayProxyResponse, err error) {
-	ctx, s := xray.BeginSubsegment(ctx, "handle event")
-	defer s.Close(err)
+	ctx, span := tracing.Start(ctx, "handle event")
+	defer func() { tracing.End(span, err) }()
 
 	if event.RequestContext.HTTPMethod != http.MethodPost {
 		// Receiving anything other than a POST requests points to a configuration issue and should be investigated
@@ -144,8 +146,8 @@ func (e *Endpoint) HandleEvent(ctx context.Context, event *events.APIGatewayProx
 // It should be registered to the Lambda Start in a function which is configured as a single-url function.
 // See https://docs.aws.amazon.com/lambda/latest/dg/urls-configuration.html for more info.
 func (e *Endpoint) HandleRequest(ctx context.Context, event *events.LambdaFunctionURLRequest) (res *events.LambdaFunctionURLResponse, err error) {
-	ctx, s := xray.BeginSubsegment(ctx, "handle request")
-	defer s.Close(err)
+	ctx, span := tracing.Start(ctx, "handle request")
+	defer func() { tracing.End(span, err) }()
 
 	if event.RequestContext.HTTP.Method != http.MethodPost {
 		// Receiving anything other than a POST requests points to a configuration issue and should be investigated
@@ -171,8 +173,8 @@ func (e *Endpoint) HandleRequest(ctx context.Context, event *events.LambdaFuncti
 }
 
 func (e *Endpoint) handle(ctx context.Context, headers map[string]string, body []byte) (res string, code int, err error) {
-	ctx, s := xray.BeginSubsegment(ctx, "handle")
-	defer s.Close(err)
+	ctx, span := tracing.Start(ctx, "handle")
+	defer func() { tracing.End(span, err) }()
 
 	if err = e.verify(ctx, headers, body); err != nil {
 		e.log.Error("Failed to verify signature", "error", err)
@@ -205,9 +207,9 @@ func (e *Endpoint) handle(ctx context.Context, headers map[string]string, body [
 
 // verify verifies the request using the ed25519 signature as per Discord's documentation.
 // See https://discord.com/developers/docs/events/webhook-events#setting-up-an-endpoint-validating-security-request-headers.
-func (e *Endpoint) verify(ctx context.Context, headers map[string]string, body []byte) error {
-	_, s := xray.BeginSubsegment(ctx, "verify")
-	defer s.Close(nil)
+func (e *Endpoint) verify(ctx context.Context, headers map[string]string, body []byte) (err error) {
+	_, span := tracing.Start(ctx, "verify")
+	defer func() { tracing.End(span, err) }()
 
 	// if no public key is provided then skip verification
 	if len(e.publicKey) == 0 {
@@ -246,15 +248,16 @@ func (e *Endpoint) verify(ctx context.Context, headers map[string]string, body [
 func (e *Endpoint) handleInteraction(ctx context.Context, i *discordgo.InteractionCreate) (res *discordgo.InteractionResponse, err error) {
 	log := e.log.With("interaction_type", i.Type, "interaction_id", i.ID)
 	log.Debug("Handling interaction")
-	ctx, seg := xray.BeginSubsegment(ctx, "handle interaction")
-	_ = seg.AddAnnotation("type", int(i.Type))
-	defer seg.Close(err)
+	ctx, span := tracing.Start(ctx, "handle interaction", trace.WithAttributes(
+		attribute.Int("discord.interaction.type", int(i.Type)),
+	))
+	defer func() { tracing.End(span, err) }()
 
 	var s *discordgo.Session
 
 	// build a session scoped for the interaction
 	s, _ = discordgo.New("Bot " + i.Token)
-	s.Client = xray.Client(s.Client)
+	s.Client = tracing.Client(s.Client)
 
 	// if deferred response is enabled, then respond to the interaction ASAP
 	if e.deferredResponseEnabled && i.Type == discordgo.InteractionApplicationCommand {
@@ -277,15 +280,13 @@ func (e *Endpoint) handleInteraction(ctx context.Context, i *discordgo.Interacti
 }
 
 func (e *Endpoint) sendDeferredResponse(ctx context.Context, i *discordgo.InteractionCreate, s *discordgo.Session) (err error) {
-	ctx, seg := xray.BeginSubsegment(ctx, "send deferred response")
+	ctx, span := tracing.Start(ctx, "send deferred response")
+	defer func() { tracing.End(span, err) }()
 
-	err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+	return s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Flags: discordgo.MessageFlagsEphemeral,
 		},
 	}, discordgo.WithContext(ctx))
-
-	seg.Close(err)
-	return
 }
